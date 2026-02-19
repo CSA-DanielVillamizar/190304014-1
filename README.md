@@ -6,7 +6,7 @@ Este proyecto corresponde a la **CLASE 1: Fundamentos de Arquitectura Distribuid
 
 ---
 
-## 🎯 Objetivo de la Clase
+## Objetivo de la Clase
 
 Tomar el caso de una tienda ficticia (**ITM-Tech Store**) que colapsa en Black Friday debido a un **monolito acoplado**, y rediseñarlo en una arquitectura distribuida donde cada módulo pueda fallar sin tumbar a los demás.
 
@@ -17,7 +17,7 @@ Tomar el caso de una tienda ficticia (**ITM-Tech Store**) que colapsa en Black F
 
 ---
 
-## 🧱 Escenario de Negocio: "ITM-Tech Store"
+## Escenario de Negocio: "ITM-Tech Store"
 
 A las 00:01 del Black Friday, la tienda lanza oferta de laptops al 50%. El sistema es monolítico:
 
@@ -31,7 +31,7 @@ A las 00:01 del Black Friday, la tienda lanza oferta de laptops al 50%. El siste
 
 ---
 
-## 🧠 Conceptos Clave Trabajados en Clase
+## Conceptos Clave Trabajados en Clase
 
 ### Monolito vs Microservicios
 
@@ -60,7 +60,7 @@ A las 00:01 del Black Friday, la tienda lanza oferta de laptops al 50%. El siste
 
 ---
 
-## 🏗️ Estructura de la Solución
+## Estructura de la Solución
 
 Solución: `Itm.Store.System`
 
@@ -71,7 +71,7 @@ Proyectos principales:
 
 ---
 
-## 📦 Tecnologías y Requisitos
+## Tecnologías y Requisitos
 
 - **.NET SDK:** 8.0
 - **IDE recomendado:** Visual Studio 2022+ (carga de trabajo "Desarrollo ASP.NET y Web").
@@ -82,7 +82,7 @@ Proyectos principales:
 
 ---
 
-## 🔹 Itm.Inventory.Api (Servicio de Inventario)
+## Itm.Inventory.Api (Servicio de Inventario)
 
 Microservicio responsable de exponer el stock de productos.
 
@@ -121,7 +121,7 @@ Ejemplo de respuesta:
 
 ---
 
-## 🔹 Itm.Product.Api (Orquestador de Productos)
+## Itm.Product.Api (Orquestador de Productos)
 
 Microservicio que **no tiene su propio inventario**. Su trabajo es orquestar información consultando a `Itm.Inventory.Api`.
 
@@ -165,7 +165,7 @@ Ejemplo de respuesta esperada:
 
 ---
 
-## ▶️ Cómo Ejecutar la Solución Localmente
+## Cómo Ejecutar la Solución Localmente
 
 1. **Clonar el repositorio**
 
@@ -197,7 +197,7 @@ cd 190304014-1
 
 ---
 
-## ✅ Qué Aprendemos con Este Ejemplo
+## Qué Aprendemos con Este Ejemplo
 
 - Cómo separar responsabilidades en microservicios.
 - Cómo definir **contratos** de intercambio de datos usando DTOs.
@@ -206,7 +206,7 @@ cd 190304014-1
 
 ---
 
-## 🚀 Próximos Pasos (para futuras clases)
+## Próximos Pasos (para futuras clases)
 
 - Agregar **seguridad** entre microservicios (API Keys, OAuth2, etc.).
 - Introducir **observabilidad** (logging estructurado, métricas, tracing distribuido).
@@ -215,7 +215,7 @@ cd 190304014-1
 
 ---
 
-## 🧪 Retos para el Estudiante
+## Retos para el Estudiante
 
 1. **Agregar nuevo producto al inventario**  
    Extiende `Itm.Inventory.Api` para incluir un tercer producto en la lista en memoria y verifica que el orquestador lo consuma correctamente.
