@@ -240,4 +240,10 @@ cd 190304014-1
 
 ---
 
+## Licencia
+
+Este proyecto se distribuye bajo la licencia MIT. Para más detalles, consulte el archivo `LICENSE` en la raíz del repositorio.
+
+---
+
 > Este repo está pensado como material educativo para estudiantes que se inician en Arquitectura de Software moderna con .NET. El foco no es solo "hacer que funcione", sino **entender por qué** se toman ciertas decisiones de diseño.
