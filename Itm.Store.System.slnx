@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Itm.Inventory.Api/Itm.Inventory.Api.csproj" />
+  <Project Path="Itm.Product.Api/Itm.Product.Api.csproj" Id="0c1f10ab-5976-478a-9afc-3f3c5edba0a3" />
+</Solution>

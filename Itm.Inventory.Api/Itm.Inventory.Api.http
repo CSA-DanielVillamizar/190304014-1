@@ -1,0 +1,6 @@
+@Itm.Inventory.Api_HostAddress = http://localhost:5273
+
+GET {{Itm.Inventory.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
