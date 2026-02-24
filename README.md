@@ -240,6 +240,51 @@ cd 190304014-1
 
 ---
 
+## Reto Resuelto / Solución de Referencia: Itm.Order.Api
+
+Como ejemplo completo de orquestación entre microservicios, el proyecto `Itm.Order.Api` implementa un flujo de creación de órdenes de compra.
+
+- Tipo de proyecto: ASP.NET Core Web API (Minimal API).
+- Endpoint principal: `POST /api/orders`.
+- Entrada (body JSON):
+
+```json
+{
+  "productId": 1,
+  "quantity": 2
+}
+```
+
+### Flujo de Orquestación
+
+1. `Itm.Order.Api` recibe la orden con `ProductId` y `Quantity`.
+2. Usa `IHttpClientFactory` para crear:
+   - `InventoryClient` → consulta a `Itm.Inventory.Api` (`GET /api/inventory/{productId}`).
+   - `PriceClient` → consulta a `Itm.Price.Api` (`GET /api/prices/{productId}`).
+3. Ejecuta ambas llamadas en paralelo con `Task.WhenAll`.
+4. Valida que:
+   - El producto exista en inventario.
+   - El precio exista en el servicio de precios.
+   - El stock sea suficiente para la cantidad solicitada.
+5. Calcula el total: `Total = UnitPrice * Quantity`.
+6. Devuelve una "factura" de orden con un `OrderId` generado:
+
+```json
+{
+  "orderId": "<guid>",
+  "product": "LAPTOP-DELL",
+  "quantity": 2,
+  "unitPrice": 2500000,
+  "totalToPay": 5000000,
+  "currency": "COP",
+  "status": "Created"
+}
+```
+
+Este proyecto sirve como solución de referencia para el reto "Construyendo Itm.Order.Api" y muestra buenas prácticas de orquestación, validación de reglas de negocio y uso de `HttpClientFactory` con resiliencia (`Microsoft.Extensions.Http.Resilience`).
+
+---
+
 ## Licencia
 
 Este proyecto se distribuye bajo la licencia MIT. Para más detalles, consulte el archivo `LICENSE` en la raíz del repositorio.
