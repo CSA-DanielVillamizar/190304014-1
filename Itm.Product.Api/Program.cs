@@ -64,3 +64,4 @@ app.Run();
 
 // DTO Local para recibir la respuesta (Debe coincidir con el del otro servicio)
 record InventoryResponse(int ProductId, int Stock, string Sku);
+record ProductResponse(int ProductId, decimal Amount, string Currency);
