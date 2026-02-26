@@ -1,4 +1,5 @@
 using Itm.Inventory.Api.Dtos;
+using Microsoft.OpenApi.Services;
 using System.Xml; // Importamos el DTO que acabamos de crear
 
 var builder = WebApplication.CreateBuilder(args);
@@ -70,4 +71,21 @@ var index = inventoryDb.IndexOf(item);
     // 4. Confirmación de la operación
 return Results.Ok(new { Message = "Stock actualizado",NewStock = inventoryDb[index].Stock });
 });
+
+//DTO para devolver stock (El mismo de reducir  sirve, o creamos uno nuevo)
+// Usamos el mismo DTO 'ReduceStockDto' (ProductId, Quantity) para la respuesta, pero podríamos crear uno específico si queremos más claridad.
+
+app.MapPost("/api/inventory/release", (ReduceStockDto request) =>
+{
+    var item = inventoryDb.FirstOrDefault(p => p.ProductId == request.ProductId);
+if (item is null) return Results.NotFound();
+//Logica de Compensación (El Ctrl+Z del inventario)
+// sumamos lo que habiamos reducido antes
+var index = inventoryDb.IndexOf(item);
+    inventoryDb[index] = item with { Stock = item.Stock + request.Quantity }; // Crea una nueva instancia con el stock aumentado
+   Console.WriteLine($"[COMPENSACIÓN] Se devolvieron {request.Quantity} unidades al producto {item.Sku}. Nuevo stock: {inventoryDb[index].Stock}");
+    return Results.Ok(new { Message = "Stock liberado por fallo de transacción", CurrentStock = inventoryDb[index].Stock });
+
+});
+
 app.Run();

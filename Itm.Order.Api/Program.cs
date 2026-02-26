@@ -33,50 +33,49 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// Endpoint principal de creación de órdenes
+// Endpoint principal de creación de órdenes con lógica SAGA (acción + compensación)
 app.MapPost("/api/orders", async (CreateOrderDto order, IHttpClientFactory factory) =>
 {
-    var inventoryClient = factory.CreateClient("InventoryClient");
-    var priceClient = factory.CreateClient("PriceClient");
+    var invClient = factory.CreateClient("InventoryClient");
 
-    // Llamadas en paralelo a Inventory y Price
-    var stockTask = inventoryClient.GetFromJsonAsync<InventoryResponse>($"/api/inventory/{order.ProductId}");
-    var priceTask = priceClient.GetFromJsonAsync<PriceResponse>($"/api/prices/{order.ProductId}");
+    // PASO 1: Intentar reservar Stock (acción directa sobre Inventario)
+    var reduceResponse = await invClient.PostAsJsonAsync("/api/inventory/reduce", order);
 
-    await Task.WhenAll(stockTask, priceTask);
-
-    var stock = stockTask.Result;
-    var price = priceTask.Result;
-
-    if (stock is null)
+    if (!reduceResponse.IsSuccessStatusCode)
     {
-        return Results.NotFound(new { Error = "Producto no encontrado en inventario." });
+        return Results.BadRequest("No se pudo reservar el stock. Transacción abortada.");
     }
 
-    if (price is null)
+    // Si llegamos aquí, YA RESTAMOS EL STOCK. A partir de aquí necesitamos compensación si algo falla.
+    try
     {
-        return Results.Problem("No se pudo obtener el precio del producto.");
+        // PASO 2: Procesar el Pago (simulación de fallo aleatorio)
+        var random = new Random();
+        var paymentSuccess = random.Next(0, 10) > 5; // Aprox. 50% de éxito
+
+        if (!paymentSuccess)
+        {
+            throw new InvalidOperationException("Fondos insuficientes en la tarjeta.");
+        }
+
+        return Results.Ok(new { Message = "Orden creada y pagada exitosamente." });
     }
-
-    if (stock.Stock < order.Quantity)
+    catch (Exception ex)
     {
-        return Results.BadRequest(new { Error = "No hay suficiente mercancía.", CurrentStock = stock.Stock });
+        // El pago falló, pero ya quitamos el stock: iniciamos la compensación tipo SAGA
+        Console.WriteLine($"[ERROR] Falló el pago: {ex.Message}. Iniciando compensación...");
+
+        var compensateResponse = await invClient.PostAsJsonAsync("/api/inventory/release", order);
+
+        if (compensateResponse.IsSuccessStatusCode)
+        {
+            return Results.Problem("El pago falló. El stock fue devuelto correctamente. Intente de nuevo.");
+        }
+
+        // Peor escenario: falló el pago y también la compensación del stock
+        Console.WriteLine("[CRITICAL] Falló la compensación. Datos inconsistentes, requiere intervención manual.");
+        return Results.Problem("Error crítico del sistema. Contacte soporte.");
     }
-
-    var total = price.Amount * order.Quantity;
-
-    var response = new
-    {
-        OrderId = Guid.NewGuid(),
-        Product = stock.Sku,
-        Quantity = order.Quantity,
-        UnitPrice = price.Amount,
-        TotalToPay = total,
-        Currency = price.Currency,
-        Status = "Created"
-    };
-
-    return Results.Ok(response);
 });
 
 app.Run();
@@ -87,4 +86,7 @@ public record CreateOrderDto(int ProductId, int Quantity);
 public record InventoryResponse(int ProductId, int Stock, string Sku);
 
 public record PriceResponse(int ProductId, decimal Amount, string Currency);
+
+// Simulación de DTO de Pago (para futuras extensiones de la SAGA)
+public record PaymentDto(int OrderId, decimal Amount);
 
