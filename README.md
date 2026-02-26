@@ -285,6 +285,48 @@ Este proyecto sirve como solución de referencia para el reto "Construyendo Itm.
 
 ---
 
+### Pruebas de Caos para la SAGA de Pedidos
+
+Para validar el comportamiento de la SAGA (acción + compensación) en `Itm.Order.Api`:
+
+1. **Preparación**
+   - Iniciar `Itm.Inventory.Api`.
+   - Iniciar `Itm.Order.Api`.
+
+2. **Verificar estado inicial**
+   - En Swagger de `Itm.Inventory.Api`, llamar a `GET /api/inventory/1`.
+   - Anotar el stock inicial del producto 1 (por ejemplo, `50`).
+
+3. **Ejecutar órdenes con fallo simulado**
+   - Abrir Swagger de `Itm.Order.Api`.
+   - Llamar a `POST /api/orders` con este cuerpo:
+
+     ```json
+     {
+       "productId": 1,
+       "quantity": 10
+     }
+     ```
+
+   - Ejecutar varias veces. Aproximadamente la mitad de las veces el "pago" fallará (mensaje de fondos insuficientes) y la API responderá indicando que el stock fue devuelto.
+
+4. **Verificar la compensación**
+   - Cada vez que el pago falle y la respuesta indique que el stock fue devuelto:
+     - Volver a Swagger de `Itm.Inventory.Api`.
+     - Llamar de nuevo a `GET /api/inventory/1`.
+     - El stock debe permanecer igual al valor inicial (por ejemplo, `50`).
+   - En la consola de `Itm.Inventory.Api` aparecerán mensajes similares a:
+
+     ```text
+     [COMPENSACIÓN] Se devolvieron 10 unidades del producto LAPTOP-DELL. Nuevo Stock: 50
+     ```
+
+5. **Sin SAGA (qué ocurriría)**
+   - Si no existiera la llamada de compensación a `/api/inventory/release`, el stock quedaría reducido (por ejemplo, `40`) aunque el pago haya fallado.
+   - La SAGA garantiza que, ante un fallo en el flujo de negocio, el sistema vuelve a un estado consistente.
+
+---
+
 ## Licencia
 
 Este proyecto se distribuye bajo la licencia MIT. Para más detalles, consulte el archivo `LICENSE` en la raíz del repositorio.
