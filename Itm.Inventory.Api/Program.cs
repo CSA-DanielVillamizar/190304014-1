@@ -1,6 +1,7 @@
+using System.Text;
 using Itm.Inventory.Api.Dtos;
-using Microsoft.OpenApi.Services;
-using System.Xml; // Importamos el DTO que acabamos de crear
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,7 +10,34 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer(); // Permite que Swagger analice los endpoints
 builder.Services.AddSwaggerGen();           // Genera la documentación visual
 
+// Bloque de seguridad JWT (JSON Web Tokens) - Opcional, pero recomendado para proteger la API
+
+//1. Extraemos la configuración (No quemamos strings mágicos)
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var secretKey = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]!);
+
+//2. Registramos la autenticación JWT
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwtSettings["Issuer"],
+            ValidateAudience = true,
+            ValidAudience = jwtSettings["Audience"],
+            ValidateLifetime = true, // Valida que el token no haya expirado
+            ValidateIssuerSigningKey = true, // Valida la firma del token
+            IssuerSigningKey = new SymmetricSecurityKey(secretKey) // Clave secreta para validar la firma
+        };
+    });
+
+//3. Agregamos autorización (Opcional, pero recomendado para proteger los endpoints)
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
+
+
 
 // --- 2. ZONA DE MIDDLEWARE (El Portero) ---
 if (app.Environment.IsDevelopment())
@@ -17,6 +45,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();   // Activa el JSON de Swagger
     app.UseSwaggerUI(); // Activa la página web azul bonita
 }
+
+// Middleware de seguridad (JWT)
+
+app.UseAuthentication(); // Verifica el token JWT en cada petición
+app.UseAuthorization();    // Verifica los permisos del usuario
 
 // --- 3. ZONA DE DATOS (Simulación de BD) ---
 // Usamos una lista en memoria. En la vida real, aquí iría un 'DbContext' de Entity Framework.
@@ -30,6 +63,7 @@ var inventoryDb = new List<InventoryDto>
 // MapGet: Define que responderemos a peticiones HTTP GET (Lectura).
 // "/api/inventory/{id}": La URL. {id} es una variable.
 // GET /api/inventory/1 -> id=1
+
 app.MapGet("/api/inventory/{id}", (int id) =>
 {
     // Lógica LINQ: Buscamos en la lista el primero que coincida con el ID.
@@ -39,7 +73,8 @@ app.MapGet("/api/inventory/{id}", (int id) =>
     // Si existe (is not null) -> 200 OK con el dato.
     // Si no existe -> 404 NotFound.
     return item is not null ? Results.Ok(item) : Results.NotFound();
-});
+})
+.RequireAuthorization(); // Protegemos este endpoint, solo usuarios autenticados pueden acceder
 
 // POST /api/inventory/reduce-stock -> Reduce el stock de un producto
 // Nuevo Endpoint:POST /api/inventory/reduce

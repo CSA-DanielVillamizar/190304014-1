@@ -327,6 +327,282 @@ Para validar el comportamiento de la SAGA (acción + compensación) en `Itm.Orde
 
 ---
 
+## Clase 5: API Gateway (YARP) y Seguridad Distribuida con JWT
+
+En la Clase 5 agregamos dos piezas clave al ecosistema:
+
+- `Itm.Gateway.Api` – API Gateway / Reverse Proxy usando **YARP**.
+- Seguridad distribuida con **JWT** sobre `Itm.Inventory.Api`.
+
+El objetivo es:
+
+- Exponer **una sola URL pública** al cliente (Gateway) y ocultar los puertos internos.
+- Proteger los microservicios con un **brazalete VIP** (JWT) para que solo clientes autorizados puedan consultar inventario.
+
+---
+
+### Itm.Gateway.Api – API Gateway con YARP
+
+Proyecto muy liviano que actúa como "Recepcionista del Hotel": recibe todas las peticiones del cliente y las enruta hacia los microservicios reales.
+
+#### Paquete utilizado
+
+- `Yarp.ReverseProxy`
+
+#### Program.cs
+
+Archivo: `Itm.Gateway.Api/Program.cs`
+
+```csharp
+var builder = WebApplication.CreateBuilder(args); // La creación del builder
+
+// 1. Agregamos YARP a la caja de herramientas (DI)
+// Le decimos que lea la configuración del archivo appsettings.json
+builder.Services.AddReverseProxy()
+    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
+
+var app = builder.Build();
+
+// 2. Activamos el middleware de YARP
+app.MapReverseProxy();
+
+app.Run();
+```
+
+#### Configuración de rutas y clusters (appsettings.json)
+
+Archivo: `Itm.Gateway.Api/appsettings.json`
+
+Ejemplo de configuración para exponer `Inventory.Api` como `/bodega` desde el Gateway:
+
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "ReverseProxy": {
+    "Routes": {
+      "inventory-route": {
+        "ClusterId": "inventory-cluster",
+        "Match": {
+          "Path": "/bodega/{**catch-all}"
+        },
+        "Transforms": [
+          { "PathPattern": "/api/inventory/{**catch-all}" }
+        ]
+      }
+    },
+    "Clusters": {
+      "inventory-cluster": {
+        "Destinations": {
+          "destination1": {
+            "Address": "http://localhost:5000" // Puerto donde corre Itm.Inventory.Api
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+Con esto, una llamada del cliente a:
+
+- `GET http://localhost:7000/bodega/1`
+
+es traducida por YARP a:
+
+- `GET http://localhost:5000/api/inventory/1`
+
+El cliente nunca ve el puerto interno `5000`, solo conoce el Gateway.
+
+---
+
+### Seguridad con JWT en Itm.Inventory.Api
+
+En `Itm.Inventory.Api` se agregó autenticación y autorización con **JWT Bearer**. El endpoint de lectura de inventario ahora requiere un token válido.
+
+#### Paquete utilizado
+
+- `Microsoft.AspNetCore.Authentication.JwtBearer`
+
+#### Configuración JWT en appsettings.json
+
+Archivo: `Itm.Inventory.Api/appsettings.json`
+
+```json
+{
+  "JwtSettings": {
+    "Issuer": "ItmIdentityServer",
+    "Audience": "ItmStoreApis",
+    "SecretKey": "ITM-Super-Secret-Key-For-JWT-Class-2026-Nivel5"
+  }
+}
+```
+
+> Nota: En un entorno real, la `SecretKey` vendría de variables de entorno o un secret manager, no se subiría a GitHub.
+
+#### Program.cs con seguridad JWT
+
+Archivo: `Itm.Inventory.Api/Program.cs`
+
+Fragmento relevante:
+
+```csharp
+using System.Text;
+using Itm.Inventory.Api.Dtos;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// Bloque de seguridad JWT
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var secretKey = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]!);
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwtSettings["Issuer"],
+            ValidateAudience = true,
+            ValidAudience = jwtSettings["Audience"],
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(secretKey)
+        };
+    });
+
+builder.Services.AddAuthorization();
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+var inventoryDb = new List<InventoryDto>
+{
+    new(1, 50, "LAPTOP-DELL"),
+    new(2, 0,  "MOUSE-GAMER")
+};
+
+app.MapGet("/api/inventory/{id}", (int id) =>
+{
+    var item = inventoryDb.FirstOrDefault(p => p.ProductId == id);
+    return item is not null ? Results.Ok(item) : Results.NotFound();
+})
+.RequireAuthorization();
+```
+
+Los endpoints `POST /api/inventory/reduce` y `POST /api/inventory/release` quedan públicos por ahora, pero también se pueden proteger añadiendo `.RequireAuthorization()` si el escenario lo requiere.
+
+---
+
+## Guía Paso a Paso para Probar Gateway + JWT
+
+### 1. Requisitos previos
+
+- .NET 8 SDK instalado.
+- Visual Studio 2022+ (o VS Code) configurado.
+- Postman / Insomnia (opcional pero recomendado).
+
+### 2. Levantar Itm.Inventory.Api en puerto 5000
+
+Opción A (Visual Studio):
+
+- Establecer `Itm.Inventory.Api` como proyecto de inicio.
+- Verificar en `launchSettings.json` que el puerto sea `5000` (o ajustarlo).
+- Ejecutar el proyecto.
+
+Opción B (CLI):
+
+```powershell
+cd C:\190304014-1\Itm.Store.System
+dotnet run --project Itm.Inventory.Api\Itm.Inventory.Api.csproj --urls http://localhost:5000
+```
+
+### 3. Probar la seguridad JWT directamente en Inventory
+
+1. Sin token:
+   - Navega a `http://localhost:5000/api/inventory/1`.
+   - Resultado esperado: **401 Unauthorized**.
+
+2. Con token (para pruebas manuales):
+   - Ve a https://jwt.io.
+   - En el payload (JSON morado), coloca por lo menos:
+
+     ```json
+     {
+       "iss": "ItmIdentityServer",
+       "aud": "ItmStoreApis"
+     }
+     ```
+
+   - En la sección de firma (Verify Signature), usa la `SecretKey` del `appsettings.json`:
+
+     ```text
+     ITM-Super-Secret-Key-For-JWT-Class-2026-Nivel5
+     ```
+
+   - Copia el token generado (cadena larga `eyJ...`).
+   - En Postman/Insomnia, crea una petición `GET http://localhost:5000/api/inventory/1`.
+   - En la pestaña **Authorization**, selecciona `Bearer Token` y pega el token.
+   - Envía la petición.
+   - Resultado esperado: **200 OK** con el JSON del inventario.
+
+### 4. Levantar el Gateway en puerto 7000
+
+Opción A (Visual Studio):
+
+- Establecer `Itm.Gateway.Api` como proyecto de inicio.
+- Verificar el puerto en `launchSettings.json` (por ejemplo, `7000`).
+- Ejecutar el proyecto (asegúrate de que Inventory siga corriendo).
+
+Opción B (CLI):
+
+```powershell
+cd C:\190304014-1\Itm.Store.System
+dotnet run --project Itm.Gateway.Api\Itm.Gateway.Api.csproj --urls http://localhost:7000 --no-build
+```
+
+> Usamos `--no-build` para evitar re-compilar otros proyectos que ya están ejecutándose.
+
+### 5. Probar el Gateway (sin seguridad en el propio Gateway)
+
+En este momento, el Gateway solo enruta y no valida JWT. La validación ocurre en `Itm.Inventory.Api`.
+
+1. Llamada sin token:
+   - `GET http://localhost:7000/bodega/1`.
+   - El Gateway traduce a `GET http://localhost:5000/api/inventory/1`.
+   - Como Inventory exige JWT, la respuesta final será **401 Unauthorized**.
+
+2. Llamada con token (desde cliente HTTP):
+   - Usar el mismo token JWT generado en el paso 3.
+   - En Postman/Insomnia, crear `GET http://localhost:7000/bodega/1`.
+   - Enviar header: `Authorization: Bearer <tu_token>`.
+   - Resultado esperado: **200 OK** con el inventario, enrutable a través del Gateway.
+
+Con esto, el estudiante puede comprobar:
+
+- Cómo el Gateway oculta los microservicios internos.
+- Cómo funciona la seguridad distribuida con JWT en un ecosistema de microservicios.
+
+---
+
 ## Licencia
 
 Este proyecto se distribuye bajo la licencia MIT. Para más detalles, consulte el archivo `LICENSE` en la raíz del repositorio.
