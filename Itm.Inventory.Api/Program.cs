@@ -1,14 +1,49 @@
 using System.Text;
 using Itm.Inventory.Api.Dtos;
+using Itm.Inventory.Api.Core.Interfaces;
+using Itm.Inventory.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // --- 1. ZONA DE SERVICIOS (La Caja de Herramientas) ---
 // Aquí le decimos a .NET qué capacidades tendrá nuestra API.
 builder.Services.AddEndpointsApiExplorer(); // Permite que Swagger analice los endpoints
-builder.Services.AddSwaggerGen();           // Genera la documentación visual
+
+// Registro de Swagger con seguridad JWT (botón Authorize)
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Itm Inventory API", Version = "v1" });
+
+    // Definimos el esquema de seguridad (candado visual)
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Ingrese el token JWT en este formato: Bearer {su_token_aqui}"
+    });
+
+    // Requerimiento global para que Swagger use el token en las peticiones
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 // Bloque de seguridad JWT (JSON Web Tokens) - Opcional, pero recomendado para proteger la API
 
@@ -32,8 +67,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-//3. Agregamos autorización (Opcional, pero recomendado para proteger los endpoints)
-builder.Services.AddAuthorization();
+//3. Agregamos autorización (incluimos una política de rol de Administrador)
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Administrador"));
+});
+
+// 4. Servicios auxiliares para extraer información del usuario actual
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
 var app = builder.Build();
 
@@ -64,23 +106,33 @@ var inventoryDb = new List<InventoryDto>
 // "/api/inventory/{id}": La URL. {id} es una variable.
 // GET /api/inventory/1 -> id=1
 
-app.MapGet("/api/inventory/{id}", (int id) =>
+app.MapGet("/api/inventory/{id}", (int id, HttpContext httpContext, ILogger<Program> logger) =>
 {
-    // Lógica LINQ: Buscamos en la lista el primero que coincida con el ID.
-    var item = inventoryDb.FirstOrDefault(p => p.ProductId == id);
+    // Extraemos el Correlation ID si viene de upstream (Gateway / Order.Api)
+    var correlationId = httpContext.Request.Headers["X-Correlation-ID"].FirstOrDefault() ?? "SIN-ID";
 
-    //  PATRÓN DE RESPUESTA HTTP:
-    // Si existe (is not null) -> 200 OK con el dato.
-    // Si no existe -> 404 NotFound.
-    return item is not null ? Results.Ok(item) : Results.NotFound();
+    using (logger.BeginScope(new Dictionary<string, object> { ["CorrelationId"] = correlationId }))
+    {
+        // Lógica LINQ: Buscamos en la lista el primero que coincida con el ID.
+        var item = inventoryDb.FirstOrDefault(p => p.ProductId == id);
+
+        //  PATRÓN DE RESPUESTA HTTP:
+        // Si existe (is not null) -> 200 OK con el dato.
+        // Si no existe -> 404 NotFound.
+        return item is not null ? Results.Ok(item) : Results.NotFound();
+    }
 })
 .RequireAuthorization(); // Protegemos este endpoint, solo usuarios autenticados pueden acceder
 
 // POST /api/inventory/reduce-stock -> Reduce el stock de un producto
-// Nuevo Endpoint:POST /api/inventory/reduce
+// Solo usuarios con rol Administrador pueden reducir stock.
 // Usamos [FromBody] para indicar que el dato viene en el cuerpo de la petición (JSON).
-app.MapPost("/api/inventory/reduce", (ReduceStockDto request) =>
+app.MapPost("/api/inventory/reduce", (ReduceStockDto request, ICurrentUserService currentUserService) =>
 {
+  // Auditoría básica usando la información del token JWT
+    var email = currentUserService.ObtenerEmailUsuario();
+    Console.WriteLine($"[AUDITORÍA] El usuario {email} intenta reducir stock del producto {request.ProductId}.");
+
     // 1. Buscamos el producto
     var item = inventoryDb.FirstOrDefault(p => p.ProductId == request.ProductId);
 
@@ -105,7 +157,8 @@ var index = inventoryDb.IndexOf(item);
 
     // 4. Confirmación de la operación
 return Results.Ok(new { Message = "Stock actualizado",NewStock = inventoryDb[index].Stock });
-});
+})
+.RequireAuthorization("AdminOnly");
 
 //DTO para devolver stock (El mismo de reducir  sirve, o creamos uno nuevo)
 // Usamos el mismo DTO 'ReduceStockDto' (ProductId, Quantity) para la respuesta, pero podríamos crear uno específico si queremos más claridad.

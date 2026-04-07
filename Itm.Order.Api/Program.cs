@@ -1,10 +1,18 @@
 using System.Net.Http.Json;
 using Microsoft.Extensions.Http.Resilience;
+using MassTransit; // Para futuras implementaciones de SAGA coreografiada con RabbitMQ o Azure Service Bus
+using Itm.Order.Api.Handlers;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Necesario para leer encabezados de la petición HTTP entrante
+builder.Services.AddHttpContextAccessor();
+
+// Registramos el DelegatingHandler que propagará el X-Correlation-ID
+builder.Services.AddTransient<CorrelationIdDelegatingHandler>();
 
 // Registro de clientes HTTP hacia los otros microservicios
 builder.Services
@@ -14,6 +22,7 @@ builder.Services
         client.BaseAddress = new Uri("http://localhost:5273");
         client.Timeout = TimeSpan.FromSeconds(5);
     })
+    .AddHttpMessageHandler<CorrelationIdDelegatingHandler>()
     .AddStandardResilienceHandler();
 
 builder.Services
@@ -23,7 +32,21 @@ builder.Services
         client.BaseAddress = new Uri("http://localhost:5280");
         client.Timeout = TimeSpan.FromSeconds(5);
     })
+    .AddHttpMessageHandler<CorrelationIdDelegatingHandler>()
     .AddStandardResilienceHandler();
+
+// Configuración del Productor
+builder.Services.AddMassTransit(x =>
+{
+    x.UsingRabbitMq((context, cfg) =>
+    {
+    //Peguen aquí su AMQP URL DE CLOUDAMQP (Entre comillas dobles)
+    // En un trabajo real, esto va en el KeyVault o en las variables de entorno, no hardcodeado
+    cfg.Host("amqps://wqwoltap:bYzWB8MvzX891TQSA8YY5HB8ePSdLWda@turkey.rmq.cloudamqp.com/wqwoltap");
+    });
+});
+
+
 
 var app = builder.Build();
 
