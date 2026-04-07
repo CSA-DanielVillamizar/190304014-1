@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Itm.Store.Mobile.MainPage">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="30" Spacing="25">
+
+            <Label Text="ITM-Tickets Móvil " 
+                   FontSize="28" 
+                   FontAttributes="Bold" 
+                   HorizontalOptions="Center" />
+
+            <Button x:Name="LoginBtn"
+                    Text="1. Iniciar Sesión (Guardar Token)"
+                    Clicked="OnLoginClicked"
+                    BackgroundColor="#512BD4" />
+
+            <Button x:Name="GetDataBtn"
+                    Text="2. Consultar Producto Seguramente"
+                    Clicked="OnGetDataClicked"
+                    BackgroundColor="#2b82d4" />
+
+            <Label x:Name="ResultLabel" 
+                   Text="Esperando acción..."
+                   TextColor="Gray"
+                   FontSize="16" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

@@ -1,9 +1,17 @@
 using Microsoft.AspNetCore.Mvc;
+using Itm.Product.Api.Handlers;
+using Microsoft.Extensions.Http.Resilience;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Necesario para leer encabezados de la petición HTTP entrante (Authorization)
+builder.Services.AddHttpContextAccessor();
+
+// DelegatingHandler que reenviará el encabezado Authorization a Inventory/Price
+builder.Services.AddTransient<AuthForwardingDelegatingHandler>();
 
 // -----------------------------------------------------------
 // ANÁLISIS PROFUNDO: REGISTRO DE CLIENTES HTTP
@@ -23,7 +31,8 @@ builder.Services.AddHttpClient("InventoryClient", client =>
 // .AddStandardResilienceHandler(): Agrega magia automática.
 // - Reintentos (Retry): Si falla, intenta 3 veces más.
 // - Circuit Breaker: Si falla mucho, deja de intentar para no saturar.
-.AddStandardResilienceHandler();
+    .AddHttpMessageHandler<AuthForwardingDelegatingHandler>()
+    .AddStandardResilienceHandler();
 
 var app = builder.Build();
 

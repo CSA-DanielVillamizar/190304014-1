@@ -4,4 +4,7 @@
   <Project Path="Itm.Order.Api/Itm.Order.Api.csproj" />
   <Project Path="Itm.Product.Api/Itm.Product.Api.csproj" Id="0c1f10ab-5976-478a-9afc-3f3c5edba0a3" />
   <Project Path="Itm.Shared.Events/Itm.Shared.Events.csproj" Id="680bcd59-df0e-466e-89fb-742b9af20406" />
+  <Project Path="Itm.Store.Mobile/Itm.Store.Mobile.csproj" Id="e78d3831-0238-46de-9991-d51b1fa1dd23">
+    <Deploy Solution="Debug|*" />
+  </Project>
 </Solution>
