@@ -1,4 +1,5 @@
 <Solution>
+  <Project Path="GestionITM.Tests/Itm.Inventory.Tests.csproj" Id="f9d46bdf-8b3b-4335-b4b3-81e0f9306992" />
   <Project Path="Itm.Gateway.Api/Itm.Gateway.Api.csproj" Id="af049245-290b-4908-ba92-097ceb20c2cf" />
   <Project Path="Itm.Inventory.Api/Itm.Inventory.Api.csproj" />
   <Project Path="Itm.Order.Api/Itm.Order.Api.csproj" />

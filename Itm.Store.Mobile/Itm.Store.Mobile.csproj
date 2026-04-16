@@ -59,6 +59,15 @@
 		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <AndroidResource Remove="NewFolder\**" />
+	  <Compile Remove="NewFolder\**" />
+	  <EmbeddedResource Remove="NewFolder\**" />
+	  <MauiCss Remove="NewFolder\**" />
+	  <MauiXaml Remove="NewFolder\**" />
+	  <None Remove="NewFolder\**" />
+	</ItemGroup>
+
     <ItemGroup>
 		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.9" />
@@ -66,7 +75,7 @@
 	</ItemGroup>
 
     <ItemGroup>
-      <Folder Include="NewFolder\" />
+      <ProjectReference Include="..\Itm.Product.Api\Itm.Product.Api.csproj" />
     </ItemGroup>
 
 </Project>
