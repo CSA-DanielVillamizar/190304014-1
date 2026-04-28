@@ -2,11 +2,18 @@ using System.Net.Http.Json;
 using Microsoft.Extensions.Http.Resilience;
 using MassTransit; // Para futuras implementaciones de SAGA coreografiada con RabbitMQ o Azure Service Bus
 using Itm.Order.Api.Handlers;
+using Itm.Inventory.Api.Protos; // Added for Grpc types
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Agregar configuración del cliente gRPC para InventoryService
+builder.Services.AddGrpcClient<InventoryService.InventoryServiceClient>(o =>
+{
+    o.Address = new Uri("https://localhost:7198"); // Puerto HTTPS actual de Inventory.Api (ver launchSettings.json del proyecto Inventory)
+});
 
 // Necesario para leer encabezados de la petición HTTP entrante
 builder.Services.AddHttpContextAccessor();
@@ -99,6 +106,21 @@ app.MapPost("/api/orders", async (CreateOrderDto order, IHttpClientFactory facto
         Console.WriteLine("[CRITICAL] Falló la compensación. Datos inconsistentes, requiere intervención manual.");
         return Results.Problem("Error crítico del sistema. Contacte soporte.");
     }
+});
+
+// === NUEVO ENDPOINT gRPC ===
+// El Order.Api llama al servicio remoto como si fuera un método inyectado. Cero manejo manual de JSON.
+app.MapPost("/api/orders/grpc", async (int productId, InventoryService.InventoryServiceClient client) =>
+{
+    // Realizamos la llamada gRPC de forma asíncrona
+    var reply = await client.CheckStockAsync(new StockRequest { ProductId = productId });
+
+    if (!reply.IsAvailable)
+    {
+        return Results.BadRequest($"Stock insuficiente. Solo quedan {reply.Stock} unidades.");
+    }
+
+    return Results.Ok("Orden validada por gRPC y procesada.");
 });
 
 app.Run();

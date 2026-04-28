@@ -10,6 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // --- 1. ZONA DE SERVICIOS (La Caja de Herramientas) ---
 // Aquí le decimos a .NET qué capacidades tendrá nuestra API.
+builder.Services.AddGrpc(); // Agregamos soporte para gRPC
 builder.Services.AddEndpointsApiExplorer(); // Permite que Swagger analice los endpoints
 
 // Registro de Swagger con seguridad JWT (botón Authorize)
@@ -176,4 +177,7 @@ var index = inventoryDb.IndexOf(item);
 
 });
 
+app.MapGrpcService<GrpcInventoryService>();
+
 app.Run();
+

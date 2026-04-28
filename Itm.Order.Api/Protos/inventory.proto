@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+option csharp_namespace = "Itm.Inventory.Api.Protos";
+
+package Inventory;
+
+// Definicion del servicio de inventario
+service InventoryService {
+	// Metodo para obtener el stock de un producto
+	rpc CheckStock(StockRequest) returns (StockResponse);
+}
+
+// Estructura de la solicitud para obtener el stock
+message StockRequest {
+	int32 product_id = 1; // El ´1´ es el tag (posición en el binario)
+	}
+
+	// Estructura de la respuesta con el stock del producto
+	message StockResponse {
+		int32 product_id = 1; // El ´1´ es el tag (posición en el binario)
+		int32 stock = 2; // El ´2´ es el tag (posición en el binario)
+		bool is_available = 3; // El ´3´ es el tag (posición en el binario)
+		}
+
