@@ -29,8 +29,9 @@ public static class MauiProgram
         {
 
             // El truco del emulador 10.0.2.2 es la ip para llegar a nuestro PC desde el emulador de Android. Es como si fuera localhost pero para el emulador.
-            // Si prueban en un celular fisico real conectado por USB,  debe  colocar la IP de sus PC en la red WIFI, por ejemplo: 192.168.1.15
-            client.BaseAddress = new Uri("http://10.0.2.2:5183"); // Puerto del Gateway.Api
+            // Para probar localmente a través del Ingress / Gateway:
+            client.BaseAddress = new Uri("http://10.0.2.2"); // Usa la IP especial de Android para localhost
+
 
         })
 .AddHttpMessageHandler<AuthHandler>(); // Le estamos conectando el peaje automático

@@ -74,8 +74,4 @@
         <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.0" />
 	</ItemGroup>
 
-    <ItemGroup>
-      <ProjectReference Include="..\Itm.Product.Api\Itm.Product.Api.csproj" />
-    </ItemGroup>
-
 </Project>

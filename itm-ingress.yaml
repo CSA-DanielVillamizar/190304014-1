@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: itm-tickets-ingress
+  annotations:
+    #  Le decimos que el vigilante es NGINX
+    kubernetes.io/ingress.class: nginx
+spec:
+  tls: #  Sección de seguridad
+  - hosts:
+    - api.itm-tickets.com
+    secretName: itm-tickets-tls-secret #  Aquí se guarda la llave privada cifrada
+  rules:
+  - host: api.itm-tickets.com #  El dominio que el usuario escribe
+    http:
+      paths:
+      - path: /orders #  Si la URL termina en /orders
+        pathType: Prefix
+        backend:
+          service:
+            name: order-service #  Mándalo al servicio de la Clase 15
+            port:
+              number: 80
+      - path: /notifications #  Si va para notificaciones (SignalR)
+        pathType: Prefix
+        backend:
+          service:
+            name: notification-service
+            port:
+              number: 80

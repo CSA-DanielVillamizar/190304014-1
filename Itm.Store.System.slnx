@@ -1,11 +1,15 @@
 <Solution>
-  <Project Path="GestionITM.Tests/Itm.Inventory.Tests.csproj" Id="f9d46bdf-8b3b-4335-b4b3-81e0f9306992" />
-  <Project Path="Itm.Gateway.Api/Itm.Gateway.Api.csproj" Id="af049245-290b-4908-ba92-097ceb20c2cf" />
-  <Project Path="Itm.Inventory.Api/Itm.Inventory.Api.csproj" />
-  <Project Path="Itm.Order.Api/Itm.Order.Api.csproj" />
-  <Project Path="Itm.Product.Api/Itm.Product.Api.csproj" Id="0c1f10ab-5976-478a-9afc-3f3c5edba0a3" />
-  <Project Path="Itm.Shared.Events/Itm.Shared.Events.csproj" Id="680bcd59-df0e-466e-89fb-742b9af20406" />
-  <Project Path="Itm.Store.Mobile/Itm.Store.Mobile.csproj" Id="e78d3831-0238-46de-9991-d51b1fa1dd23">
+  <Folder Name="/Solution Items/">
+    <File Path="itm-ingress.yaml" />
+  </Folder>
+  <Project Path="../../../../../../../../190304014-1/Itm.Store.System/GestionITM.Tests/Itm.Inventory.Tests.csproj" Id="f9d46bdf-8b3b-4335-b4b3-81e0f9306992" />
+  <Project Path="../../../../../../../../190304014-1/Itm.Store.System/Itm.Gateway.Api/Itm.Gateway.Api.csproj" Id="af049245-290b-4908-ba92-097ceb20c2cf" />
+  <Project Path="../../../../../../../../190304014-1/Itm.Store.System/Itm.Inventory.Api/Itm.Inventory.Api.csproj" />
+  <Project Path="../../../../../../../../190304014-1/Itm.Store.System/Itm.Order.Api/Itm.Order.Api.csproj" />
+  <Project Path="../../../../../../../../190304014-1/Itm.Store.System/Itm.Product.Api/Itm.Product.Api.csproj" Id="0c1f10ab-5976-478a-9afc-3f3c5edba0a3" />
+  <Project Path="../../../../../../../../190304014-1/Itm.Store.System/Itm.Shared.Events/Itm.Shared.Events.csproj" Id="680bcd59-df0e-466e-89fb-742b9af20406" />
+  <Project Path="../../../../../../../../190304014-1/Itm.Store.System/Itm.Store.Mobile/Itm.Store.Mobile.csproj" Id="e78d3831-0238-46de-9991-d51b1fa1dd23">
     <Deploy Solution="Debug|*" />
   </Project>
+  <Project Path="Itm.Tickets.Functions/Itm.Tickets.Functions.csproj" />
 </Solution>
