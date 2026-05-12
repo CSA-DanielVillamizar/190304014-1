@@ -20,7 +20,7 @@ spec:
           service:
             name: order-service #  Mándalo al servicio de la Clase 15
             port:
-              number: 80
+              number: 8080
       - path: /notifications #  Si va para notificaciones (SignalR)
         pathType: Prefix
         backend:

@@ -122,8 +122,9 @@ En este paso unimos el ataque de tráfico con `k6` y activamos las reglas para q
      ```
 
    * **Terminal 3 (El Ataque):**
+     *Nota: Ya que estamos usando un certificado local auto-firmado, debes ejecutar el ataque de k6 ignorándolo.* Sólo debes añadir el flag `--insecure-skip-tls-verify`, y así el ataque de tráfico se ejecutará limpio:
      ```bash
-     k6 run test-load.js
+     k6 run --insecure-skip-tls-verify test-load.js
      ```
 
    *🗣️ Guion Docente:*
