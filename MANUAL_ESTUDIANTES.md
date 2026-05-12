@@ -86,9 +86,9 @@ kubectl apply -f gateway-deployment.yaml
 
 ---
 
-## 🎯 Paso 5: Preparación de Pruebas de Carga con k6
+## 🎯 Paso 5: Preparación y Ejecución de Pruebas de Carga con k6 y Auto-Escalado (HPA)
 
-Creamos un archivo `test-load.js` para simular tráfico pesado y probar la escalabilidad del sistema. 
+En este paso unimos el ataque de tráfico con `k6` y activamos las reglas para que el sistema crezca automáticamente frente a este tráfico. Creamos un archivo `test-load.js` para simular tráfico pesado y probar la escalabilidad del sistema. 
 
 1. **El Script `test-load.js`:**
    Ataca el Ingress en el endpoint de órdenes (`http://api.itm-tickets.com/orders`) escalando hasta 100 peticiones concurrentes y manteniendo esa carga.
@@ -97,8 +97,34 @@ Creamos un archivo `test-load.js` para simular tráfico pesado y probar la escal
    * En Windows con Chocolatey: `choco install k6`
    * En Windows con Winget: `winget install k6`
 
-3. **Lanzar el ataque:**
-   Con todo montado y corriendo, ejecutamos:
+3. **Activar el Auto-Escalado (HPA):**
+   *🗣️ Guion Docente:*
+   *"Vamos a configurar el HPA. Le diremos a Kubernetes: 'Si ves que mis pods están trabajando a más del 50% de su capacidad, tráeme refuerzos'."*
+
+   Ejecutamos en la consola para activar el escalado en el deployment `order-api-deployment`:
    ```bash
-   k6 run test-load.js
+   kubectl autoscale deployment order-api-deployment --cpu-percent=50 --min=3 --max=10
    ```
+
+4. **Verificación en Tiempo Real (La Sala de Guerra):**
+   Para que la clase sea dinámica, pedir a los estudiantes abrir **3 terminales en paralelo**.
+
+   * **Terminal 1 (El Observador de Métricas):**
+     Aquí verán cómo sube el % de CPU y aumenta la columna REPLICAS.
+     ```bash
+     kubectl get hpa order-api-deployment -w
+     ```
+
+   * **Terminal 2 (Los Pods en Combate):**
+     Verán pods pasando de 'Pending' a 'Running' en segundos.
+     ```bash
+     kubectl get pods -l app=order-api -w
+     ```
+
+   * **Terminal 3 (El Ataque):**
+     ```bash
+     k6 run test-load.js
+     ```
+
+   *🗣️ Guion Docente:*
+   *"Miren la Terminal 1. Noten que hay un retraso de unos 15-30 segundos. Kubernetes no escala instantáneamente para evitar el 'efecto rebote'. Se llama Cooldown period. ¡Arquitectos, vean cómo nacen los nuevos pods para salvar el negocio!"*
